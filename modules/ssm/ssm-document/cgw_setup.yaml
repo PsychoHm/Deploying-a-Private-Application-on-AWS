@@ -1,0 +1,230 @@
+---
+schemaVersion: '2.2'
+description: 'SSM document for VPN and DNS setup'
+parameters:
+  vpnConnectionId:
+    type: String
+    description: 'VPN Connection ID'
+  appVpcRegion:
+    type: String
+    description: 'AWS Region'
+  clientVpcCidr:
+    type: String
+    description: 'Client VPC CIDR'
+  appVpcCidr:
+    type: String
+    description: 'App VPC CIDR'
+  domain:
+    type: String
+    description: 'Domain'
+  r53ResolverIp1:
+    type: String
+    description: 'R53 Resolver IP 1'
+  r53ResolverIp2:
+    type: String
+    description: 'R53 Resolver IP 2'
+  vpcRouter:
+    type: String
+    description: 'VPC Router IP'
+
+mainSteps:
+  - action: 'aws:runShellScript'
+    name: 'SetupVPNandDNS'
+    inputs:
+      runCommand:
+        - |
+          #!/bin/bash
+
+          set -e  # Exit immediately if a command exits with a non-zero status.
+
+          # Set up logging
+          LOG_FILE="/var/log/VPN-DNS-setup.log"
+          exec > >(tee -a "$LOG_FILE") 2>&1
+
+          log() {
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+          }
+
+          log "Starting VPN and DNS setup script"
+
+          # Set your VPN connection ID and AWS region
+          VPN_CONNECTION_ID="{{ vpnConnectionId }}"
+          AWS_REGION="{{ appVpcRegion }}"
+          CLIENT_VPC_CIDR="{{ clientVpcCidr }}"
+          APP_VPC_CIDR="{{ appVpcCidr }}"
+          DOMAIN="{{ domain }}"
+          VPC_ROUTER="{{ vpcRouter }}"
+          R53_RESOLVER_IP1="{{ r53ResolverIp1 }}"
+          R53_RESOLVER_IP2="{{ r53ResolverIp2 }}"
+
+          log "VPN Connection ID: $VPN_CONNECTION_ID"
+          log "AWS Region: $AWS_REGION"
+          log "Client VPC CIDR: $CLIENT_VPC_CIDR"
+          log "App VPC CIDR: $APP_VPC_CIDR"
+          log "Domain: $DOMAIN"
+          log "R53 Resolver IP 1: $R53_RESOLVER_IP1"
+          log "R53 Resolver IP 2: $R53_RESOLVER_IP2"
+
+          # Get VPN connection details
+          log "Fetching VPN connection details"
+          vpn_connection=$(aws ec2 describe-vpn-connections --vpn-connection-ids $VPN_CONNECTION_ID --region $AWS_REGION --query 'VpnConnections[0]')
+
+          # Extract the CustomerGatewayConfiguration
+          customer_gateway_config=$(echo $vpn_connection | jq -r '.CustomerGatewayConfiguration')
+
+          # Extract the PSK using xmllint
+          VPN_TUNNEL_PSK=$(echo $customer_gateway_config | xmllint --xpath "string(//ipsec_tunnel/ike/pre_shared_key)" -)
+
+          # Extract the VPN tunnel IP (AWS side)
+          AWS_VPN_TUNNEL_IP=$(echo $vpn_connection | jq -r '.VgwTelemetry[0].OutsideIpAddress')
+
+          # Extract the Customer Gateway IP
+          CGW_IP=$(echo $customer_gateway_config | xmllint --xpath "string(//customer_gateway/tunnel_outside_address/ip_address)" -)
+
+          # Print the results
+          log "AWS VPN Tunnel IP: $AWS_VPN_TUNNEL_IP"
+          log "Customer Gateway IP: $CGW_IP"
+          log "VPN Tunnel PSK: [REDACTED]"
+
+          # Update the system
+          log "Updating system packages"
+          sudo yum update -y
+
+          # Install iptables-services
+          log "Installing iptables-services"
+          sudo yum install iptables-services -y || {
+              log "iptables-services installation failed. Cleaning DNF cache and retrying..."
+              sudo dnf clean all
+              sudo dnf makecache
+              sudo yum install iptables-services -y
+          }
+
+          # Enable IP forwarding
+          log "Enabling IP forwarding"
+          echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
+          sudo sysctl -p
+
+          # Configure NAT using iptables rules
+          log "Configuring NAT for CIDR: $CLIENT_VPC_CIDR"
+          sudo iptables -t nat -A POSTROUTING -s $CLIENT_VPC_CIDR -j MASQUERADE || {
+              log "Failed to add MASQUERADE rule. Please check your iptables configuration."
+              exit 1
+          }
+
+          # Save the iptables rules
+          log "Saving iptables rules"
+          sudo service iptables save
+
+          # Add Libreswan repository
+          log "Adding Libreswan repository"
+          cat <<EOL | sudo tee /etc/yum.repos.d/fedora.repo
+          [fedora]
+          name=Fedora 36 - \$basearch
+          metalink=https://mirrors.fedoraproject.org/metalink?repo=fedora-36&arch=\$basearch
+          enabled=0
+          countme=1
+          metadata_expire=7d
+          repo_gpgcheck=0
+          type=rpm
+          gpgcheck=1
+          gpgkey=https://getfedora.org/static/fedora.gpg
+          skip_if_unavailable=False
+          EOL
+
+          # Install Libreswan
+          log "Installing Libreswan"
+          sudo dnf --enablerepo=fedora install libreswan -y || {
+              log "Libreswan installation failed. Cleaning DNF cache and retrying..."
+              sudo dnf clean all
+              sudo dnf makecache
+              sudo dnf --enablerepo=fedora install libreswan -y
+          }
+
+          # Configure /etc/ipsec.conf
+          log "Configuring /etc/ipsec.conf"
+          sudo sed -i 's/^#include \/etc\/ipsec.d\/\*.conf$/include \/etc\/ipsec.d\/\*.conf/' /etc/ipsec.conf
+
+          # Create /etc/ipsec.d/aws.conf
+          log "Creating /etc/ipsec.d/aws.conf"
+          cat <<EOL | sudo tee /etc/ipsec.d/aws.conf
+          conn Tunnel1
+           authby=secret
+           auto=start
+           left=%defaultroute
+           leftid=$CGW_IP
+           right=$AWS_VPN_TUNNEL_IP
+           type=tunnel
+           ikelifetime=8h
+           keylife=1h
+           phase2alg=aes_gcm
+           ike=aes256-sha1
+           keyingtries=%forever
+           keyexchange=ike
+           leftsubnet=$CLIENT_VPC_CIDR
+           rightsubnet=$APP_VPC_CIDR
+           dpddelay=10
+           dpdtimeout=30
+           dpdaction=restart_by_peer
+           encapsulation=yes
+           logfile=/var/log/pluto.log
+           plutodebug="base"
+          EOL
+
+          # Create /etc/ipsec.d/aws.secrets
+          log "Creating /etc/ipsec.d/aws.secrets"
+          echo "$CGW_IP $AWS_VPN_TUNNEL_IP : PSK \"$VPN_TUNNEL_PSK\"" | sudo tee /etc/ipsec.d/aws.secrets
+
+          # Start ipsec service
+          log "Starting ipsec service"
+          sudo systemctl start ipsec.service
+
+          # Install dnsmasq
+          log "Installing dnsmasq"
+          sudo yum install -y dnsmasq
+
+          # Configure dnsmasq
+          log "Configuring dnsmasq"
+          sudo tee /etc/dnsmasq.conf > /dev/null <<EOF
+          interface=*
+          no-resolv
+          no-poll
+          server=/access.$DOMAIN/$R53_RESOLVER_IP1
+          server=/access.$DOMAIN/$R53_RESOLVER_IP2
+          listen-address=0.0.0.0
+          max-ttl=300
+          min-cache-ttl=300
+          log-queries
+          log-facility=/var/log/dnsmasq.log
+          cache-size=1000
+          dns-forward-max=150
+          strict-order
+          local=/$DOMAIN/
+          server=$VPC_ROUTER
+          EOF
+
+          # Start dnsmasq
+          log "Starting dnsmasq service"
+          sudo systemctl start dnsmasq
+          sudo systemctl enable dnsmasq
+
+          # Flush DNS cache
+          log "Flushing DNS cache"
+          if command -v systemd-resolve &> /dev/null; then
+              sudo systemd-resolve --flush-caches
+          elif [ -f /etc/init.d/nscd ]; then
+              sudo /etc/init.d/nscd restart
+          fi
+
+          # Restart IPSec and dnsmasq
+          log "Restarting IPSec and dnsmasq services"
+          sudo systemctl restart ipsec
+          sudo systemctl restart dnsmasq
+
+          # Check the status of the services
+          log "Checking status of IPSec service:"
+          sudo systemctl status ipsec --no-pager
+
+          log "Checking status of dnsmasq service:"
+          sudo systemctl status dnsmasq --no-pager
+
+          log "VPN and DNS setup completed"

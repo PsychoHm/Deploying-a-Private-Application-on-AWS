@@ -1,0 +1,10 @@
+variable "vpn_connection_id" {}
+variable "app_vpc_region" {}
+variable "r53_resolver_ip1" {}
+variable "r53_resolver_ip2" {}
+variable "client_vpc_cidr" {}
+variable "app_vpc_cidr" {}
+variable "vpc_router" {}
+variable "private_ip" {}
+variable "domain" {}
+variable "instance_id" {}
