@@ -45,10 +45,10 @@ resource "aws_s3_bucket_policy" "alb_logs_policy" {
       {
         Effect = "Allow",
         Principal = {
-          AWS = "arn:aws:iam::127311923021:root"
+          AWS = "arn:aws:iam::127311923021:root" # Replace elb-account-id with the ID of the AWS account for Elastic Load Balancing for your Region [https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html]
         },
         Action   = "s3:PutObject",
-        Resource = "arn:aws:s3:::${var.bucket_name}/AWSLogs/935221134767/*"
+        Resource = "arn:aws:s3:::${var.bucket_name}/AWSLogs/123456789/*" # Use your AWS Account ID
       }
     ]
   })
