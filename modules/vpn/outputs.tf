@@ -10,5 +10,5 @@ output "cgw_id" {
 
 output "vpn_connection_id" {
   description = "The ID of the VPN Connection"
-  value       = length(aws_vpn_connection.main) > 0 ? aws_vpn_connection.main[0].id : null
+  value       = aws_vpn_connection.main.id
 }
