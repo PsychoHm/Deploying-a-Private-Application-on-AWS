@@ -27,3 +27,9 @@ variable "route_table_id" {
   description = "The ID of the route table for VPN Gateway route propagation"
   type        = string
 }
+
+variable "create_vgw" {
+  description = "Whether to create a new VPN Gateway"
+  type        = bool
+  default     = false
+}
