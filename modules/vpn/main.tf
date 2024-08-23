@@ -9,6 +9,7 @@ terraform {
 
 # Check for existing VPN Gateway with the specific name
 data "aws_vpn_gateway" "existing" {
+  count = var.create_vgw ? 0 : 1
   filter {
     name   = "tag:Name"
     values = ["app-vpc-vgw"]
@@ -19,19 +20,23 @@ data "aws_vpn_gateway" "existing" {
   }
 }
 
-# Create VPN Gateway only if one with the specific name doesn't exist
+# Create VPN Gateway if one doesn't exist and create_vgw is true
 resource "aws_vpn_gateway" "vgw" {
-  count  = length(data.aws_vpn_gateway.existing) == 0 ? 1 : 0
+  count  = var.create_vgw ? 1 : 0
   vpc_id = var.vpc_id
 
   tags = {
     Name = "app-vpc-vgw"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Use existing VGW if available, otherwise use the newly created one
 locals {
-  vgw_id = length(data.aws_vpn_gateway.existing) > 0 ? data.aws_vpn_gateway.existing.id : try(aws_vpn_gateway.vgw[0].id, "")
+  vgw_id = var.create_vgw ? aws_vpn_gateway.vgw[0].id : try(data.aws_vpn_gateway.existing[0].id, aws_vpn_gateway.vgw[0].id)
 }
 
 # Create Customer Gateway
