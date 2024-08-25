@@ -14,7 +14,7 @@ This project demonstrates the deployment of a private application on the AWS Clo
 ### 1. Client VPC:
 
 * Consists of two subnets: a private subnet hosting a client EC2 instance, and a public subnet hosting a Customer Gateway (CGW) instance.
-* The client EC2 instance connects to the application using the DNS name access.myapp.internal through a Python script that sends GET requests every 20 seconds.
+* The client EC2 instance connects to the application using the DNS name access.myapp.internal through a Python script that sends GET requests every 5 seconds.
 * The CGW instance serves as the gateway for the Client VPC, handling VPN termination with OpenSwan and DNS functionalities with dnsmasq.
 
 ### 2. Application VPC:
@@ -94,4 +94,140 @@ The main Terraform file (`main.tf`) orchestrates the deployment of the entire in
 13. **Final Configurations**:
     - Set up the necessary routes and DHCP options for proper communication between VPCs.
 
-The deployment leverages various Terraform modules to create a secure, scalable, and distributed application environment across two AWS regions. The modular approach allows for easy management and potential expansion of the infrastructure.
+# Deployment Guide
+
+This document provides a comprehensive step-by-step guide for deploying the project from the GitHub repository.
+
+## Prerequisites
+
+- **Terraform**: Ensure that Terraform is installed on your system.
+- **AWS CLI**: Configure the AWS CLI with the appropriate credentials to manage your AWS resources.
+
+## Deployment Steps
+
+### Step 1: Clone the GitHub Repository
+
+Download the project from the GitHub repository.
+
+```bash
+git clone <repository-url>
+cd <repository-directory>
+```
+
+### Step 2: Configure S3 Bucket
+
+In the root `main.tf` file, specify a unique bucket name for the S3 bucket used for Application Load Balancer (ALB) logs:
+
+```hcl
+# Create S3 bucket for ALB logs
+module "s3" {
+  source      = "./modules/s3"
+  bucket_name = "myappalb.logs77399957" # Use a unique bucket name
+  providers = {
+    aws = aws.us-east-1
+  }
+}
+```
+
+### Step 3: Update S3 Module Configuration
+
+Navigate to the `./modules/s3/main.tf` file and make the following updates:
+
+- Replace `elb-account-id` with the ID of the AWS account for Elastic Load Balancing in your region. For more details, refer to the [AWS documentation](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html).
+- Replace `123456789` with your actual AWS Account ID.
+
+```hcl
+resource "aws_s3_bucket_policy" "alb_logs_policy" {
+  bucket = aws_s3_bucket.alb_logs.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          AWS = "arn:aws:iam::127311923021:root" # Replace with ELB account ID
+        },
+        Action   = "s3:PutObject",
+        Resource = "arn:aws:s3:::${var.bucket_name}/AWSLogs/123456789/*" # Replace with your AWS Account ID
+      }
+    ]
+  })
+}
+```
+
+### Step 4: Initialize and Validate Terraform Configuration
+
+Run the following command in the root directory to initialize and validate your Terraform configuration:
+
+```bash
+terraform init && terraform fmt -recursive && terraform validate
+```
+
+![terrform_init](https://github.com/user-attachments/assets/64dcf2e2-fa0b-43aa-94e3-391b9e739ee2)
+
+
+Ensure that you see the message: **"Success! The configuration is valid."**
+
+### Step 5: Apply Terraform Configuration
+
+Execute the following command to apply the Terraform configuration:
+
+```bash
+terraform apply
+```
+![terra_apply](https://github.com/user-attachments/assets/f7b40838-a91a-48a7-8620-dae6cd892697)
+
+When prompted, type **"yes"** to confirm the apply operation.
+
+### Step 6: Verify Deployment
+
+![terra_apply_finished](https://github.com/user-attachments/assets/464f2430-c183-4664-84ca-c0b59c8fa2d3)
+
+- Check the VPN connection status in the App VPC region; it should be **"UP"**.
+
+![VPN_Status](https://github.com/user-attachments/assets/4ed5f0dc-e622-4ed1-930a-a378a600761e)
+
+- Use AWS Systems Manager Session Manager to log into one of the App VPC instances (e.g., **"AppInstance1"**).
+- Ping the private IP address of the Client EC2 instance in the Client VPC to verify connectivity.
+
+![ping_App_to_Clinet](https://github.com/user-attachments/assets/9edacbe8-6689-4b26-8785-d1cab07b4dc5)
+
+- From the Client EC2 instance, ping **AppInstance1** to confirm bi-directional connectivity.
+
+![ping_client_to_app](https://github.com/user-attachments/assets/7bc0e006-6431-412f-89cd-74fd12b4f27a)
+
+
+### Step 7: Test Web Application Access
+
+Run the provided script on the client instance to verify that the Client EC2 instance can access the web application.
+
+## Destroying the Project
+
+To tear down the infrastructure, follow these steps:
+
+### Step 1: Empty the S3 Bucket
+
+Run the following commands to empty the S3 bucket:
+
+```bash
+chmod +x empty_s3_bucket.sh
+./empty_s3_bucket.sh
+```
+
+Ensure that the correct bucket name is specified in the script.
+
+### Step 2: Destroy Terraform-managed Infrastructure
+
+Execute the following command to destroy the Terraform-managed infrastructure:
+
+```bash
+terraform destroy
+```
+
+Confirm the destruction when prompted.
+
+## Notes
+
+- The deployment process typically takes around **10 minutes** to complete.
+- Always review and understand the changes before applying or destroying infrastructure.
+- Ensure you have the necessary permissions in your AWS account to create and manage the resources defined in the Terraform configuration.
