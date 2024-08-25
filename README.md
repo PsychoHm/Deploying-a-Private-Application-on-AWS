@@ -92,7 +92,6 @@ The main Terraform file (`main.tf`) orchestrates the deployment of the entire in
     - Configure the CGW instance using the `ssm` module for VPN and routing setup.
 
 13. **Final Configurations**:
-    - Associate the Elastic IP with the CGW instance.
     - Set up the necessary routes and DHCP options for proper communication between VPCs.
 
 The deployment leverages various Terraform modules to create a secure, scalable, and distributed application environment across two AWS regions. The modular approach allows for easy management and potential expansion of the infrastructure.
