@@ -42,15 +42,57 @@ The project is implemented using Terraform, an Infrastructure as Code (IaC) tool
 
 The main Terraform file (`main.tf`) orchestrates the deployment of the entire infrastructure by following these steps:
 
-1. Configure AWS providers for the us-east-1 and us-east-2 regions.
-2. Set up IAM roles, policies, and an S3 bucket for ALB access logs.
-3. Create the Application VPC and Client VPC with necessary subnets, route tables, internet gateways, and NAT gateways.
-4. Define security groups for various components in both VPCs.
-5. Set up an ElastiCache Redis cluster in the Application VPC.
-6. Launch EC2 instances for the application and client components, including the CGW instance.
-7. Create an Application Load Balancer (ALB) in the Application VPC and attach the application instances.
-8. Establish a Site-to-Site VPN connection between the Application VPC and the Client VPC.
-9. Create a private hosted zone in Route53 with a DNS record pointing to the ALB, and set up Route53 Resolver endpoints for DNS resolution between VPCs.
-10. Configure additional networking components, such as Elastic IP association, routing, and DHCP options for the Client VPC.
+1. **Provider Configuration**:
+   - Configure AWS providers for the us-east-1 (Application VPC) and us-east-2 (Client VPC) regions.
 
-The project leverages modular components and user data scripts to create a secure and distributed application environment spanning two AWS regions, with the application running in one region and clients accessing it from another region through a secure VPN connection.
+2. **VPC Setup**:
+   - Create the Application VPC in us-east-1 using the `app_vpc` module.
+   - Create the Client VPC in us-east-2 using the `client_vpc` module.
+   - Both VPCs are set up with public and private subnets, route tables, internet gateways, and NAT gateways.
+
+3. **Security Groups**:
+   - Use the `security_groups` module to create and configure security groups for various components in both VPCs.
+
+4. **VPN and VGW Setup**:
+   - Create an Elastic IP (EIP) for the Customer Gateway (CGW).
+   - Use the `vpn` module to set up a Site-to-Site VPN connection between the Application VPC and the Client VPC.
+
+5. **ElastiCache Setup**:
+   - Deploy an ElastiCache Redis cluster in the Application VPC using the `elasticache` module.
+
+6. **IAM and S3 Setup**:
+   - Use the `iam` module to create necessary IAM roles and policies.
+   - Set up an S3 bucket for ALB access logs using the `s3` module.
+
+7. **EC2 Instances for the Application**:
+   - Launch two EC2 instances (`ec2_app1` and `ec2_app2`) in the Application VPC's private subnets using the `ec2-app` module.
+   - Configure these instances with the appropriate user data, security groups, and IAM roles.
+
+8. **Application Load Balancer (ALB)**:
+   - Create an ALB in the Application VPC using the `alb` module.
+   - Configure the ALB to distribute traffic between the two application instances.
+   - Set up target group attachments for the application instances.
+
+9. **Customer Gateway (CGW) Setup**:
+   - Launch an EC2 instance to act as the CGW in the Client VPC's public subnet using the `ec2-client` module.
+   - Associate the previously created EIP with the CGW instance.
+
+10. **DNS and Route53 Setup**:
+    - Configure DHCP options for the Client VPC.
+    - Use the `route53` module to create a private hosted zone for the "myapp.internal" domain.
+    - Set up a Route53 record pointing to the ALB.
+    - Deploy Route53 Resolver endpoints using the `resolver` module for cross-VPC DNS resolution.
+
+11. **Client EC2 Instance**:
+    - Launch a client EC2 instance in the Client VPC's private subnet using the `ec2-client` module.
+    - Configure this instance with appropriate user data for accessing the application.
+
+12. **Additional Networking Configuration**:
+    - Set up routes in the Client VPC to direct traffic to the Application VPC through the CGW.
+    - Configure the CGW instance using the `ssm` module for VPN and routing setup.
+
+13. **Final Configurations**:
+    - Associate the Elastic IP with the CGW instance.
+    - Set up the necessary routes and DHCP options for proper communication between VPCs.
+
+The deployment leverages various Terraform modules to create a secure, scalable, and distributed application environment across two AWS regions. The modular approach allows for easy management and potential expansion of the infrastructure.
