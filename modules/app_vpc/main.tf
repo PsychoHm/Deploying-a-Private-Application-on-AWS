@@ -61,6 +61,7 @@ resource "aws_internet_gateway" "this" {
 }
 
 resource "aws_eip" "nat" {
+  vpc = true
   tags = {
     Name = "${var.vpc_name}-nat-eip"
   }
@@ -72,14 +73,6 @@ resource "aws_nat_gateway" "this" {
 
   tags = {
     Name = "${var.vpc_name}-natgw"
-  }
-}
-
-resource "aws_vpn_gateway" "this" {
-  vpc_id = aws_vpc.this.id
-
-  tags = {
-    Name = "${var.vpc_name}-vgw"
   }
 }
 
@@ -108,11 +101,6 @@ resource "aws_route_table" "private" {
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.this.id
-  }
-
-  route {
-    cidr_block = var.client_vpc_cidr
-    gateway_id = aws_vpn_gateway.this.id
   }
 
   tags = {
