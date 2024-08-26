@@ -185,21 +185,33 @@ When prompted, type **"yes"** to confirm the apply operation.
 
 - Check the VPN connection status in the App VPC region; it should be **"UP"**.
 
-![VPN_Status](https://github.com/user-attachments/assets/4ed5f0dc-e622-4ed1-930a-a378a600761e)
+![VPN_Status](https://github.com/user-attachments/assets/23ee2296-21ff-4739-88e7-c094bed491a6)
 
 - Use AWS Systems Manager Session Manager to log into one of the App VPC instances (e.g., **"AppInstance1"**).
+
+![AppInstance1_Connect](https://github.com/user-attachments/assets/1220f313-efb0-4661-8387-75ab5a679683)
+
 - Ping the private IP address of the Client EC2 instance in the Client VPC to verify connectivity.
 
-![ping_App_to_Clinet](https://github.com/user-attachments/assets/9edacbe8-6689-4b26-8785-d1cab07b4dc5)
+
+![Client_EC2](https://github.com/user-attachments/assets/b6829833-f1bc-411c-bb60-57757f5df682)
+
+![App_to_Client](https://github.com/user-attachments/assets/6f6eedc5-bfd3-4899-acdb-f9f8bbeccdd8)
 
 - From the Client EC2 instance, ping **AppInstance1** to confirm bi-directional connectivity.
 
-![ping_client_to_app](https://github.com/user-attachments/assets/7bc0e006-6431-412f-89cd-74fd12b4f27a)
+![Client_to_App](https://github.com/user-attachments/assets/53bb5494-6109-463f-ad38-d6508a63313e)
 
 
 ### Step 7: Test Web Application Access
 
+
 Run the provided script on the client instance to verify that the Client EC2 instance can access the web application.
+
+![Application test](https://github.com/user-attachments/assets/a6cb2c05-0487-404c-94f5-77962e272269)
+
+![Access](https://github.com/user-attachments/assets/246ccb2c-9749-4aae-821d-2784509e457b)
+
 
 ## Destroying the Project
 
@@ -216,6 +228,9 @@ chmod +x empty_s3_bucket.sh
 
 Ensure that the correct bucket name is specified in the script.
 
+![Empty](https://github.com/user-attachments/assets/97859a7f-44cb-4cf4-8ff5-c13fcc4434e8)
+
+
 ### Step 2: Destroy Terraform-managed Infrastructure
 
 Execute the following command to destroy the Terraform-managed infrastructure:
@@ -223,6 +238,7 @@ Execute the following command to destroy the Terraform-managed infrastructure:
 ```bash
 terraform destroy
 ```
+![destroy](https://github.com/user-attachments/assets/f36528a5-1788-4cc5-b8f5-3e21ff8cabaa)
 
 Confirm the destruction when prompted.
 
