@@ -7,26 +7,11 @@ terraform {
   }
 }
 
-# Check for existing VPN Gateway with the specific name
-data "aws_vpn_gateway" "existing" {
-  count = var.create_vgw ? 0 : 1
-  filter {
-    name   = "tag:Name"
-    values = ["app-vpc-vgw"]
-  }
-  filter {
-    name   = "attachment.vpc-id"
-    values = [var.vpc_id]
-  }
-}
-
-# Create VPN Gateway if one doesn't exist and create_vgw is true
 resource "aws_vpn_gateway" "vgw" {
-  count  = var.create_vgw ? 1 : 0
   vpc_id = var.vpc_id
 
   tags = {
-    Name = "app-vpc-vgw"
+    Name = "${var.vpc_name}-vgw"
   }
 
   lifecycle {
@@ -34,12 +19,11 @@ resource "aws_vpn_gateway" "vgw" {
   }
 }
 
-# Use existing VGW if available, otherwise use the newly created one
-locals {
-  vgw_id = var.create_vgw ? aws_vpn_gateway.vgw[0].id : try(data.aws_vpn_gateway.existing[0].id, aws_vpn_gateway.vgw[0].id)
+resource "aws_vpn_gateway_attachment" "vpn_attachment" {
+  vpc_id         = var.vpc_id
+  vpn_gateway_id = aws_vpn_gateway.vgw.id
 }
 
-# Create Customer Gateway
 resource "aws_customer_gateway" "cgw" {
   bgp_asn    = var.bgp_asn
   ip_address = var.cgw_eip
@@ -50,9 +34,8 @@ resource "aws_customer_gateway" "cgw" {
   }
 }
 
-# Create VPN Connection
 resource "aws_vpn_connection" "main" {
-  vpn_gateway_id      = local.vgw_id
+  vpn_gateway_id      = aws_vpn_gateway.vgw.id
   customer_gateway_id = aws_customer_gateway.cgw.id
   type                = "ipsec.1"
   static_routes_only  = true
@@ -60,16 +43,18 @@ resource "aws_vpn_connection" "main" {
   tags = {
     Name = "${var.vpc_name}-vpn-connection"
   }
+
+  depends_on = [aws_vpn_gateway_attachment.vpn_attachment]
 }
 
-# Create VPN Connection Route
 resource "aws_vpn_connection_route" "main" {
   destination_cidr_block = var.client_vpc_cidr
   vpn_connection_id      = aws_vpn_connection.main.id
 }
 
-# Enable route propagation
 resource "aws_vpn_gateway_route_propagation" "main" {
-  vpn_gateway_id = local.vgw_id
+  vpn_gateway_id = aws_vpn_gateway.vgw.id
   route_table_id = var.route_table_id
+
+  depends_on = [aws_vpn_gateway_attachment.vpn_attachment]
 }
