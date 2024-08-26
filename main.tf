@@ -72,6 +72,7 @@ module "vpn" {
   cgw_eip         = aws_eip.cgw_eip.public_ip
   client_vpc_cidr = var.client_vpc_cidr
   route_table_id  = module.app_vpc.private_route_table_id
+
   providers = {
     aws = aws.us-east-1
   }
