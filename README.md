@@ -110,8 +110,8 @@ This document provides a comprehensive step-by-step guide for deploying the proj
 Download the project from the GitHub repository.
 
 ```bash
-git clone <repository-url>
-cd <repository-directory>
+git clone https://github.com/PsychoHm/Deploying-a-Private-Application-on-AWS
+cd Deploying-a-Private-Application-on-AWS/
 ```
 
 ### Step 2: Configure S3 Bucket
