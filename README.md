@@ -194,7 +194,8 @@ When prompted, type **"yes"** to confirm the apply operation.
 - Ping the private IP address of the Client EC2 instance in the Client VPC to verify connectivity.
 
 
-![Client_EC2](https://github.com/user-attachments/assets/b6829833-f1bc-411c-bb60-57757f5df682)
+![Client_EC2](https://github.com/user-attachments/assets/511d9714-b781-4c82-8072-29dc7603ea9d)
+
 
 ![App_to_Client](https://github.com/user-attachments/assets/6f6eedc5-bfd3-4899-acdb-f9f8bbeccdd8)
 
