@@ -114,7 +114,7 @@ git clone https://github.com/PsychoHm/Deploying-a-Private-Application-on-AWS
 cd Deploying-a-Private-Application-on-AWS/
 ```
 
-### Step 2: Configure S3 Bucket and specify the AMI that meets the requirements for your EC2 instance [https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/finding-an-ami.html]
+### Step 2: Configure S3 Bucket
 
 In the root `main.tf` file, specify a unique bucket name for the S3 bucket used for Application Load Balancer (ALB) logs:
 
