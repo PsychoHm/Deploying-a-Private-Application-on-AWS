@@ -177,48 +177,62 @@ When prompted, type **"yes"** to confirm the apply operation.
 
 ![apply_finished](https://github.com/user-attachments/assets/a56d07cd-1d4e-4cdf-bd7d-8bd95d982db9)
 
-- Check the VPN connection status in the App VPC region; it should be **"UP"**.
+- Check the IPsec status in CGW EC2 instance :
 
-![VPN_Status](https://github.com/user-attachments/assets/23ee2296-21ff-4739-88e7-c094bed491a6)
+<img width="1109" alt="Screenshot 2024-08-27 at 14 49 01" src="https://github.com/user-attachments/assets/3e66e71e-bda7-4fc7-b44b-0cadd93111fa">
+
+![IPsec_Status](https://github.com/user-attachments/assets/7c0c8515-554a-4279-97b9-ecb174739397)
+
+- Check the VPN connection status in the App VPC region; it should be **"UP"** (if it is not resatrt the Ipsec service in CGW EC2)
+
+![VPN_Status](https://github.com/user-attachments/assets/4f6904bf-de6f-44d3-89fc-6c2646dcedd9)
+
+![Static routes](https://github.com/user-attachments/assets/3a114d94-c066-4112-a325-f02ffb6e5baf)
 
 - Use AWS Systems Manager Session Manager to log into one of the App VPC instances (e.g., **"AppInstance1"**).
 
-![AppInstance1_Connect](https://github.com/user-attachments/assets/1220f313-efb0-4661-8387-75ab5a679683)
+  ![AppInstance1](https://github.com/user-attachments/assets/c1b43a29-c13c-4cb6-a140-5e7555d05863)
+
+![ssm_app](https://github.com/user-attachments/assets/da3bf4d1-20d4-4e0a-80c1-47bc614ece60)
 
 - Ping the private IP address of the Client EC2 instance in the Client VPC to verify connectivity.
 
+![Client](https://github.com/user-attachments/assets/b6afe6f9-747b-4414-8dcc-adc476d9dcf2)
 
-![Client_EC2](https://github.com/user-attachments/assets/511d9714-b781-4c82-8072-29dc7603ea9d)
-
-
-![App_to_Client](https://github.com/user-attachments/assets/6f6eedc5-bfd3-4899-acdb-f9f8bbeccdd8)
+![App_Client](https://github.com/user-attachments/assets/ec398c81-2b3e-46a8-9eee-3c388eb14eb9)
 
 - From the Client EC2 instance, ping **AppInstance1** to confirm bi-directional connectivity.
 
-![Client_to_App](https://github.com/user-attachments/assets/53bb5494-6109-463f-ad38-d6508a63313e)
+![Client_App](https://github.com/user-attachments/assets/2fbd103c-a315-4887-a6fb-689d6b347595)
 
 
 ### Step 7: Test Web Application Access
 
+- Check the ALB Target group and confirm the targets are healthy :
 
-Run the provided script on the client instance to verify that the Client EC2 instance can access the web application.
+  ![ALBTG](https://github.com/user-attachments/assets/6069505c-7281-4144-a16d-06e99a927bf9)
 
-![Application test](https://github.com/user-attachments/assets/a6cb2c05-0487-404c-94f5-77962e272269)
+- Check you the DNSmasq service is running in CGW EC2 :
 
-![Access](https://github.com/user-attachments/assets/246ccb2c-9749-4aae-821d-2784509e457b)
+  ![dnsmasq](https://github.com/user-attachments/assets/12972c59-d7d3-4baf-ae07-9e4e31c4eacf)
+
+- Check you can resolve access.myapp.internal from the Client EC2 instance :
+
+  ![dig_test](https://github.com/user-attachments/assets/a0ff694a-3776-40b5-9bab-70b13bb29780)
+
+
+- Run the provided script on the client instance to verify that the Client EC2 instance can access the web application.
+
+![Screenshot 2024-08-27 at 15 48 58](https://github.com/user-attachments/assets/843edc38-1f3f-4b34-bb47-30148a279587)
 
 
 ## Destroying the Project
 
-To tear down the infrastructure, follow these steps:
-
-### Step 1: Empty the S3 Bucket
-
 Run the following commands to empty the S3 bucket:
 
 ```bash
-chmod +x empty_s3_bucket.sh
-./empty_s3_bucket.sh
+chmod +x scripts/empty_s3_bucket.sh 
+terraform destroy
 ```
 
 Ensure that the correct bucket name is specified in the script.
@@ -236,6 +250,9 @@ terraform destroy
 ![destroy](https://github.com/user-attachments/assets/f36528a5-1788-4cc5-b8f5-3e21ff8cabaa)
 
 Confirm the destruction when prompted.
+
+![Destroy](https://github.com/user-attachments/assets/eecdae1f-6880-431a-9b45-e6800758dfd5)
+
 
 ## Notes
 
