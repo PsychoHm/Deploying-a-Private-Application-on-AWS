@@ -246,9 +246,6 @@ terraform destroy
 
 Confirm the destruction when prompted.
 
-![Destroy](https://github.com/user-attachments/assets/eecdae1f-6880-431a-9b45-e6800758dfd5)
-
-
 ## Notes
 
 - The deployment process typically takes around **10 minutes** to complete.
