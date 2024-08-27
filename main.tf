@@ -127,6 +127,21 @@ module "s3" {
   }
 }
 
+# Null resource to empty the S3 bucket before destruction
+resource "null_resource" "empty_s3_bucket" {
+  triggers = {
+    bucket_name = module.s3.bucket_name
+  }
+
+  provisioner "local-exec" {
+    when        = destroy
+    command     = "${path.module}/scripts/empty_s3_bucket.sh ${self.triggers.bucket_name}"
+    interpreter = ["bash", "-c"]
+  }
+
+  depends_on = [module.s3]
+}
+
 # 7. EC2 instances for the application
 # Application instance 1
 module "ec2_app1" {
