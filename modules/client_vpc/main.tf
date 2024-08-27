@@ -114,10 +114,3 @@ resource "time_sleep" "wait_30_seconds" {
 
   create_duration = "30s"
 }
-
-# EIP for CGW
-resource "aws_eip" "cgw_eip" {
-  provider = aws.us-east-2
-  vpc      = true
-  tags     = { Name = "CGW-EIP" }
-}
