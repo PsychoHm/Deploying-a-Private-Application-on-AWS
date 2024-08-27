@@ -114,13 +114,14 @@ git clone https://github.com/PsychoHm/Deploying-a-Private-Application-on-AWS
 cd Deploying-a-Private-Application-on-AWS/
 ```
 
-### Step 2: AMI Configuration / S3 bucket name suggestion
+### Step 2: AMI Configuration / S3 bucket name suggestion / S3 deletion later 
 
 Ensure the use of valid AMI IDs for the specified regions. Execute the following commands in the root directory:
  
 ```bash
 chmod +x scripts/suggest_bucket_name.sh
 chmod +x scripts/get_latest_ami.sh
+chmod +x scripts/empty_s3_bucket.sh 
 ```
 
 ### Step 3: S3 Module Configuration
@@ -230,7 +231,6 @@ When prompted, type **"yes"** to confirm the apply operation.
 Execute the following commands :
 
 ```bash
-chmod +x scripts/empty_s3_bucket.sh 
 terraform destroy
 ```
 
