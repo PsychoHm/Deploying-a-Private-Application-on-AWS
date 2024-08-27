@@ -51,8 +51,13 @@ mainSteps:
           log "Checking for jq installation"
           if ! command -v jq &> /dev/null; then
               log "jq not found. Installing jq..."
-              sudo yum install -y epel-release
+              
+              # Enable EPEL repository using Amazon Linux Extras
+              sudo amazon-linux-extras install epel -y
+              
+              # Install jq
               sudo yum install -y jq
+              
               if ! command -v jq &> /dev/null; then
                   log "Failed to install jq using yum. Attempting to install using alternative method..."
                   sudo yum install -y wget
@@ -94,7 +99,7 @@ mainSteps:
           log "Domain: $DOMAIN"
           log "R53 Resolver IP 1: $R53_RESOLVER_IP1"
           log "R53 Resolver IP 2: $R53_RESOLVER_IP2"
-
+          
           # Get VPN connection details
           log "Fetching VPN connection details"
           vpn_connection=$(aws ec2 describe-vpn-connections --vpn-connection-ids $VPN_CONNECTION_ID --region $AWS_REGION --query 'VpnConnections[0]')
@@ -123,9 +128,9 @@ mainSteps:
           # Install iptables-services
           log "Installing iptables-services"
           sudo yum install iptables-services -y || {
-              log "iptables-services installation failed. Cleaning DNF cache and retrying..."
-              sudo dnf clean all
-              sudo dnf makecache
+              log "iptables-services installation failed. Cleaning YUM cache and retrying..."
+              sudo yum clean all
+              sudo yum makecache
               sudo yum install iptables-services -y
           }
 
@@ -145,29 +150,14 @@ mainSteps:
           log "Saving iptables rules"
           sudo service iptables save
 
-          # Add Libreswan repository
-          log "Adding Libreswan repository"
-          cat <<EOL | sudo tee /etc/yum.repos.d/fedora.repo
-          [fedora]
-          name=Fedora 36 - \$basearch
-          metalink=https://mirrors.fedoraproject.org/metalink?repo=fedora-36&arch=\$basearch
-          enabled=0
-          countme=1
-          metadata_expire=7d
-          repo_gpgcheck=0
-          type=rpm
-          gpgcheck=1
-          gpgkey=https://getfedora.org/static/fedora.gpg
-          skip_if_unavailable=False
-          EOL
-
           # Install Libreswan
           log "Installing Libreswan"
-          sudo dnf --enablerepo=fedora install libreswan -y || {
-              log "Libreswan installation failed. Cleaning DNF cache and retrying..."
-              sudo dnf clean all
-              sudo dnf makecache
-              sudo dnf --enablerepo=fedora install libreswan -y
+          sudo amazon-linux-extras install epel -y
+          sudo yum install libreswan -y || {
+              log "Libreswan installation failed. Cleaning YUM cache and retrying..."
+              sudo yum clean all
+              sudo yum makecache
+              sudo yum install libreswan -y
           }
 
           # Configure /etc/ipsec.conf
@@ -197,7 +187,7 @@ mainSteps:
            dpdaction=restart_by_peer
            encapsulation=yes
            logfile=/var/log/pluto.log
-           plutodebug="base"
+           plutodebug=all
           EOL
 
           # Create /etc/ipsec.d/aws.secrets
