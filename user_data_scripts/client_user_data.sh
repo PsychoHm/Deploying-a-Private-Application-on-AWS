@@ -2,40 +2,34 @@
 
 # Update and install necessary packages
 yum update -y
-yum install -y python3
+yum install -y python3 python3-pip
+
+# Install the requests library
+pip3 install requests
 
 # Create the client.py file
 cat << EOF > /home/ec2-user/client.py
+#!/usr/bin/env python3
 import requests
 import time
-import logging
 
-# Set up logging
-logging.basicConfig(filename='/home/ec2-user/client.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+url = "http://access.myapp.internal"
 
-# Define the URL to send GET requests to
-url = "http://access.myapp.local"
-
-# Function to send requests
-def send_request():
+while True:
     try:
         response = requests.get(url)
-        logging.info(f"Response Status Code: {response.status_code}")
-        logging.info(f"Response Content: {response.text[:100]}")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"An error occurred: {e}")
-
-# Run the request function once
-send_request()
-
-# Schedule the script to run every 10 seconds using cron
-(crontab -l 2>/dev/null; echo "* * * * * /usr/bin/python3 /home/ec2-user/client.py") | crontab -
+        print(f"Status Code: {response.status_code}")
+        print(f"Content: {response.text[:100]}")
+    except Exception as e:
+        print(f"Error: {e}")
+    
+    time.sleep(5)
 EOF
 
 # Set appropriate permissions
 chown ec2-user:ec2-user /home/ec2-user/client.py
-chmod 644 /home/ec2-user/client.py
+chmod 755 /home/ec2-user/client.py
 
 # Add some debugging information
-echo "User data script completed" >> /var/log/user-data.log
-echo "CGW Private IP: ${cgw_private_ip}" >> /var/log/user-data.log
+echo "Setup script completed" >> /var/log/setup.log
+echo "To run the script, type: python3 /home/ec2-user/client.py"
