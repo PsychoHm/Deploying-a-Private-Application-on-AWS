@@ -47,6 +47,36 @@ mainSteps:
 
           log "Starting VPN and DNS setup script"
 
+          # Install jq
+          log "Checking for jq installation"
+          if ! command -v jq &> /dev/null; then
+              log "jq not found. Installing jq..."
+              sudo yum install -y epel-release
+              sudo yum install -y jq
+              if ! command -v jq &> /dev/null; then
+                  log "Failed to install jq using yum. Attempting to install using alternative method..."
+                  sudo yum install -y wget
+                  wget -O jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+                  sudo mv jq /usr/bin/
+                  sudo chmod +x /usr/bin/jq
+              fi
+          fi
+
+          # Verify jq installation
+          if command -v jq &> /dev/null; then
+              log "jq has been successfully installed"
+          else
+              log "Failed to install jq. Exiting script."
+              exit 1
+          fi
+
+          # Install xmllint if not present
+          log "Checking for xmllint installation"
+          if ! command -v xmllint &> /dev/null; then
+              log "xmllint not found. Installing libxml2..."
+              sudo yum install -y libxml2
+          fi
+
           # Set your VPN connection ID and AWS region
           VPN_CONNECTION_ID="{{ vpnConnectionId }}"
           AWS_REGION="{{ appVpcRegion }}"
