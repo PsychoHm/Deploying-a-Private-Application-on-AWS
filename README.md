@@ -114,19 +114,13 @@ git clone https://github.com/PsychoHm/Deploying-a-Private-Application-on-AWS
 cd Deploying-a-Private-Application-on-AWS/
 ```
 
-### Step 2: Configure S3 Bucket
+### Step 2: Make sure to use a valid AMI IDs for the specific regions 
 
-In the root `main.tf` file, specify a unique bucket name for the S3 bucket used for Application Load Balancer (ALB) logs:
-
-```hcl
-# Create S3 bucket for ALB logs
-module "s3" {
-  source      = "./modules/s3"
-  bucket_name = "myappalb.logs77399957" # Use a unique bucket name
-  providers = {
-    aws = aws.us-east-1
-  }
-}
+In the root main directory execute the following commands:
+ 
+```bash
+chmod +x scripts/suggest_bucket_name.sh
+chmod +x scripts/get_latest_ami.sh
 ```
 
 ### Step 3: Update S3 Module Configuration
