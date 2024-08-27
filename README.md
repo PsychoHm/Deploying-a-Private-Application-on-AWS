@@ -105,25 +105,25 @@ This document provides a comprehensive step-by-step guide for deploying the proj
 
 ## Deployment Steps
 
-### Step 1: Clone the GitHub Repository
+### Step 1: Repository Cloning
 
-Download the project from the GitHub repository.
+Clone the GitHub repository to your local environment:
 
 ```bash
 git clone https://github.com/PsychoHm/Deploying-a-Private-Application-on-AWS
 cd Deploying-a-Private-Application-on-AWS/
 ```
 
-### Step 2: Make sure to use a valid AMI IDs for the specific regions 
+### Step 2: AMI Configuration / S3 bucket name suggestion
 
-In the root main directory execute the following commands:
+Ensure the use of valid AMI IDs for the specified regions. Execute the following commands in the root directory:
  
 ```bash
 chmod +x scripts/suggest_bucket_name.sh
 chmod +x scripts/get_latest_ami.sh
 ```
 
-### Step 3: Update S3 Module Configuration
+### Step 3: S3 Module Configuration
 
 Navigate to the `./modules/s3/main.tf` file and make the following updates:
 
@@ -173,72 +173,66 @@ terraform apply
 
 When prompted, type **"yes"** to confirm the apply operation.
 
-### Step 6: Verify Deployment
+### Step 6: Deployment Verification
 
 ![apply_finished](https://github.com/user-attachments/assets/a56d07cd-1d4e-4cdf-bd7d-8bd95d982db9)
 
-- Check the IPsec status in CGW EC2 instance :
+1. Verify IPsec status in the CGW EC2 instance.
 
 <img width="1109" alt="Screenshot 2024-08-27 at 14 49 01" src="https://github.com/user-attachments/assets/3e66e71e-bda7-4fc7-b44b-0cadd93111fa">
 
 ![IPsec_Status](https://github.com/user-attachments/assets/7c0c8515-554a-4279-97b9-ecb174739397)
 
-- Check the VPN connection status in the App VPC region; it should be **"UP"** (if it is not resatrt the Ipsec service in CGW EC2)
+2. Confirm VPN connection status in the App VPC region is **"UP"** (if it is not restart the IPsec service in CGW EC2)
 
 ![VPN_Status](https://github.com/user-attachments/assets/4f6904bf-de6f-44d3-89fc-6c2646dcedd9)
 
 ![Static routes](https://github.com/user-attachments/assets/3a114d94-c066-4112-a325-f02ffb6e5baf)
 
-- Use AWS Systems Manager Session Manager to log into one of the App VPC instances (e.g., **"AppInstance1"**).
+3. Use AWS Systems Manager Session Manager to log into one of the App VPC instances (e.g., **"AppInstance1"**).
 
   ![AppInstance1](https://github.com/user-attachments/assets/c1b43a29-c13c-4cb6-a140-5e7555d05863)
 
 ![ssm_app](https://github.com/user-attachments/assets/da3bf4d1-20d4-4e0a-80c1-47bc614ece60)
 
-- Ping the private IP address of the Client EC2 instance in the Client VPC to verify connectivity.
+4. Test connectivity by pinging the Client EC2 instance's private IP from the App VPC instance.
 
 ![Client](https://github.com/user-attachments/assets/b6afe6f9-747b-4414-8dcc-adc476d9dcf2)
 
 ![App_Client](https://github.com/user-attachments/assets/ec398c81-2b3e-46a8-9eee-3c388eb14eb9)
 
-- From the Client EC2 instance, ping **AppInstance1** to confirm bi-directional connectivity.
+5. From the Client EC2 instance, ping **AppInstance1** to confirm bi-directional connectivity.
 
 ![Client_App](https://github.com/user-attachments/assets/2fbd103c-a315-4887-a6fb-689d6b347595)
 
 
 ### Step 7: Test Web Application Access
 
-- Check the ALB Target group and confirm the targets are healthy :
+1. Verify the health status of targets in the ALB Target Group :
 
   ![ALBTG](https://github.com/user-attachments/assets/6069505c-7281-4144-a16d-06e99a927bf9)
 
-- Check you the DNSmasq service is running in CGW EC2 :
+2. Confirm the DNSmasq service is operational in the CGW EC2 instance. :
 
   ![dnsmasq](https://github.com/user-attachments/assets/12972c59-d7d3-4baf-ae07-9e4e31c4eacf)
 
-- Check you can resolve access.myapp.internal from the Client EC2 instance :
+3. Test DNS resolution of "access.myapp.internal" from the Client EC2 instance. :
 
   ![dig_test](https://github.com/user-attachments/assets/a0ff694a-3776-40b5-9bab-70b13bb29780)
 
-
-- Run the provided script on the client instance to verify that the Client EC2 instance can access the web application.
+4. Execute the provided script on the client instance to verify web application accessibility.
 
 ![Screenshot 2024-08-27 at 15 48 58](https://github.com/user-attachments/assets/843edc38-1f3f-4b34-bb47-30148a279587)
 
 
-## Destroying the Project
+## Project Teardown
 
-Run the following commands to empty the S3 bucket:
+Execute the following commands :
 
 ```bash
 chmod +x scripts/empty_s3_bucket.sh 
 terraform destroy
 ```
-
-Ensure that the correct bucket name is specified in the script.
-
-![Empty](https://github.com/user-attachments/assets/97859a7f-44cb-4cf4-8ff5-c13fcc4434e8)
-
 
 ### Step 2: Destroy Terraform-managed Infrastructure
 
@@ -247,6 +241,7 @@ Execute the following command to destroy the Terraform-managed infrastructure:
 ```bash
 terraform destroy
 ```
+
 ![destroy](https://github.com/user-attachments/assets/f36528a5-1788-4cc5-b8f5-3e21ff8cabaa)
 
 Confirm the destruction when prompted.
