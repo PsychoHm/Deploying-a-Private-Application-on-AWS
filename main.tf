@@ -8,17 +8,20 @@ terraform {
   }
 }
 
+# AWS provider for us-east-1 region
 provider "aws" {
   alias  = "us-east-1"
   region = "us-east-1"
 }
 
+# AWS provider for us-east-2 region
 provider "aws" {
   alias  = "us-east-2"
   region = "us-east-2"
 }
 
 # 2. VPC and networking setup
+# Application VPC in us-east-1
 module "app_vpc" {
   source               = "./modules/app_vpc"
   vpc_cidr             = var.app_vpc_cidr
@@ -31,6 +34,7 @@ module "app_vpc" {
   }
 }
 
+# Client VPC in us-east-2
 module "client_vpc" {
   source               = "./modules/client_vpc"
   vpc_cidr             = var.client_vpc_cidr
@@ -58,12 +62,14 @@ module "security_groups" {
 }
 
 # 4. VPN and VGW setup
+# Elastic IP for Customer Gateway
 resource "aws_eip" "cgw_eip" {
   provider = aws.us-east-2
   vpc      = true
   tags     = { Name = "CGW-EIP" }
 }
 
+# VPN connection setup
 module "vpn" {
   source          = "./modules/vpn"
   vpc_id          = module.app_vpc.vpc_id
@@ -97,19 +103,36 @@ module "iam" {
   }
 }
 
+# Get latest AMI for us-east-1
+data "external" "ami_us_east_1" {
+  program = ["bash", "${path.module}/scripts/get_latest_ami.sh", "us-east-1", "amzn2-ami-kernel-5.10-hvm-2.0*"]
+}
+
+# Get latest AMI for us-east-2
+data "external" "ami_us_east_2" {
+  program = ["bash", "${path.module}/scripts/get_latest_ami.sh", "us-east-2", "amzn2-ami-kernel-5.10-hvm-2.0*"]
+}
+
+# Generate unique S3 bucket name
+data "external" "s3_bucket_name" {
+  program = ["bash", "${path.module}/scripts/suggest_bucket_name.sh", "us-east-1", "myappalb-logs"]
+}
+
+# S3 bucket for ALB logs
 module "s3" {
   source      = "./modules/s3"
-  bucket_name = "myappalb.logs77399957" # Make sure to use unique bucket name
+  bucket_name = data.external.s3_bucket_name.result.bucket_name
   providers = {
     aws = aws.us-east-1
   }
 }
 
 # 7. EC2 instances for the application
+# Application instance 1
 module "ec2_app1" {
   source               = "./modules/ec2-app"
   instance_count       = 1
-  ami_id               = "ami-0aa7d40eeae50c9a9" # Use a valid AMI ID for the region
+  ami_id               = data.external.ami_us_east_1.result.ami_id
   instance_type        = "t2.micro"
   subnet_id            = module.app_vpc.private_subnet_ids[0]
   tags                 = { Name = "AppInstance1" }
@@ -125,10 +148,11 @@ module "ec2_app1" {
   depends_on = [module.elasticache, module.vpn]
 }
 
+# Application instance 2
 module "ec2_app2" {
   source               = "./modules/ec2-app"
   instance_count       = 1
-  ami_id               = "ami-0aa7d40eeae50c9a9" # Use a valid AMI ID for the region
+  ami_id               = data.external.ami_us_east_1.result.ami_id
   instance_type        = "t2.micro"
   subnet_id            = module.app_vpc.private_subnet_ids[1]
   tags                 = { Name = "AppInstance2" }
@@ -156,6 +180,7 @@ module "alb" {
   }
 }
 
+# Attach app instance 1 to ALB target group
 resource "aws_lb_target_group_attachment" "app1_tg_attachment" {
   provider         = aws.us-east-1
   target_group_arn = module.alb.app_tg_arn
@@ -163,6 +188,7 @@ resource "aws_lb_target_group_attachment" "app1_tg_attachment" {
   port             = 5000
 }
 
+# Attach app instance 2 to ALB target group
 resource "aws_lb_target_group_attachment" "app2_tg_attachment" {
   provider         = aws.us-east-1
   target_group_arn = module.alb.app_tg_arn
@@ -173,7 +199,7 @@ resource "aws_lb_target_group_attachment" "app2_tg_attachment" {
 # 9. CGW setup
 module "ec2_cgw" {
   source                      = "./modules/ec2-client"
-  ami_id                      = "ami-05c3dc660cb6907f0" # Use a valid AMI ID for the region
+  ami_id                      = data.external.ami_us_east_2.result.ami_id
   instance_type               = "t2.micro"
   subnet_id                   = module.client_vpc.public_subnet_id
   security_group_id           = module.security_groups.cgw_sg_id
@@ -190,6 +216,7 @@ module "ec2_cgw" {
   }
 }
 
+# SSM configuration for CGW
 module "ssm_cgw" {
   source            = "./modules/ssm"
   vpn_connection_id = module.vpn.vpn_connection_id
@@ -207,12 +234,14 @@ module "ssm_cgw" {
   }
 }
 
+# Associate Elastic IP with CGW instance
 resource "aws_eip_association" "cgw_eip_assoc" {
   provider      = aws.us-east-2
   instance_id   = module.ec2_cgw.instance_id
   allocation_id = aws_eip.cgw_eip.id
 }
 
+# Route from client VPC to app VPC through CGW
 resource "aws_route" "to_app_vpc" {
   provider               = aws.us-east-2
   route_table_id         = module.client_vpc.private_route_table_id
@@ -227,6 +256,7 @@ resource "aws_route" "to_app_vpc" {
 }
 
 # 10. DNS and Route53 setup
+# DHCP options for client VPC
 resource "aws_vpc_dhcp_options" "client_dhcp_options" {
   provider            = aws.us-east-2
   domain_name         = "myapp.internal"
@@ -236,12 +266,14 @@ resource "aws_vpc_dhcp_options" "client_dhcp_options" {
   }
 }
 
+# Associate DHCP options with client VPC
 resource "aws_vpc_dhcp_options_association" "client_vpc_dhcp_assoc" {
   provider        = aws.us-east-2
   vpc_id          = module.client_vpc.vpc_id
   dhcp_options_id = aws_vpc_dhcp_options.client_dhcp_options.id
 }
 
+# Route53 configuration
 module "route53" {
   source       = "./modules/route53"
   domain_name  = "myapp.internal"
@@ -254,6 +286,7 @@ module "route53" {
   }
 }
 
+# Route53 Resolver
 module "resolver" {
   source         = "./modules/resolver"
   resolver_sg_id = module.security_groups.resolver_endpoint_sg_id
@@ -267,7 +300,7 @@ module "resolver" {
 # 11. Client EC2 instance
 module "ec2_client" {
   source               = "./modules/ec2-client"
-  ami_id               = "ami-05c3dc660cb6907f0" # Use a valid AMI ID for the region
+  ami_id               = data.external.ami_us_east_2.result.ami_id
   instance_type        = "t2.micro"
   subnet_id            = module.client_vpc.private_subnet_id
   security_group_id    = module.security_groups.client_sg_id
