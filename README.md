@@ -169,13 +169,13 @@ Execute the following command to apply the Terraform configuration:
 ```bash
 terraform apply
 ```
-![terra_apply](https://github.com/user-attachments/assets/f7b40838-a91a-48a7-8620-dae6cd892697)
+![apply](https://github.com/user-attachments/assets/ecd4486c-bd49-4255-a4e1-a4b684c474bb)
 
 When prompted, type **"yes"** to confirm the apply operation.
 
 ### Step 6: Verify Deployment
 
-![terra_apply_finished](https://github.com/user-attachments/assets/464f2430-c183-4664-84ca-c0b59c8fa2d3)
+![apply_finished](https://github.com/user-attachments/assets/a56d07cd-1d4e-4cdf-bd7d-8bd95d982db9)
 
 - Check the VPN connection status in the App VPC region; it should be **"UP"**.
 
