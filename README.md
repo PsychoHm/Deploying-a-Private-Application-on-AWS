@@ -228,7 +228,7 @@ When prompted, type **"yes"** to confirm the apply operation.
 
 ## Project Teardown
 
-Execute the following commands :
+Execute the following command :
 
 ```bash
 terraform destroy
