@@ -234,14 +234,6 @@ Execute the following commands :
 terraform destroy
 ```
 
-### Step 2: Destroy Terraform-managed Infrastructure
-
-Execute the following command to destroy the Terraform-managed infrastructure:
-
-```bash
-terraform destroy
-```
-
 ![destroy](https://github.com/user-attachments/assets/f36528a5-1788-4cc5-b8f5-3e21ff8cabaa)
 
 Confirm the destruction when prompted.
