@@ -240,6 +240,6 @@ Confirm the destruction when prompted.
 
 ## Notes
 
-- The deployment process typically takes around **10 minutes** to complete.
+- The deployment process typically takes around **15 minutes** to complete.
 - Always review and understand the changes before applying or destroying infrastructure.
 - Ensure you have the necessary permissions in your AWS account to create and manage the resources defined in the Terraform configuration.
