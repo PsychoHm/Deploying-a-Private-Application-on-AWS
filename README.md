@@ -211,7 +211,7 @@ When prompted, type **"yes"** to confirm the apply operation.
 
 1. Verify the health status of targets in the ALB Target Group :
 
-  ![ALBTG](https://github.com/user-attachments/assets/6069505c-7281-4144-a16d-06e99a927bf9)
+![ALBTG](https://github.com/user-attachments/assets/463fb4bc-d15a-458b-bb5b-66d2f874753e)
 
 2. Confirm the DNSmasq service is operational in the CGW EC2 instance. :
 
